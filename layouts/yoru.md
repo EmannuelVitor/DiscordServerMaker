@@ -14,6 +14,7 @@ nome (ex.: `📖│regras`), com categorias em maiúsculas (`📌 | INÍCIO`).
 | 🌙 \| PROJETO YORU | 📰│novidades · 🛠️│patch-notes* · 🚀│releases* · 🗺️│roadmap · 🖼️│galeria | só a equipe |
 | 💬 \| COMUNIDADE | 💭│chat-geral* · 💡│sugestões · 🐞│reportar-bugs · ❓│dúvidas · 🎨│fanarts | todos |
 | 🔊 \| CALLS | 💬 \| Bate-papo* (voz) · 🎙️ \| Devlog ao vivo (voz) · 💤 \| AFK (voz) | todos |
+| 🧪 \| BETA | 🧪│beta-chat · 📦│builds (só a equipe posta) · 🐛│feedback-beta | só Beta Tester e Equipe veem |
 | 🔒 \| STAFF | 🔒│staff-chat · 📋│planejamento · 🔊 \| Reunião (voz) | só Equipe e Moderador veem |
 
 \* canais que já existem e serão **renomeados e movidos** (mantêm as mensagens):
