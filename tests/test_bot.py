@@ -122,6 +122,45 @@ class SetupStructureTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("overwrites", guild.create_text_channel.await_args.kwargs)
 
 
+class EditServerTests(unittest.IsolatedAsyncioTestCase):
+    def _ctx(self):
+        ctx = make_ctx(discord.Permissions(administrator=True))
+        guild = ctx.guild
+        guild.rules_channel = None
+        guild.public_updates_channel = None
+        guild.verification_level = discord.VerificationLevel.none
+        guild.explicit_content_filter = discord.ContentFilter.disabled
+        guild.features = []
+        guild.edit = AsyncMock(return_value=guild)
+        channels = {}
+        for cid in (1, 2):
+            channel = MagicMock(spec=discord.TextChannel)
+            channel.id = cid
+            channels[cid] = channel
+        guild.get_channel = channels.get
+        return ctx, channels
+
+    async def test_enable_community_fills_requirements(self):
+        ctx, channels = self._ctx()
+        _, is_error = await execute_tool(ctx, "edit_server", {
+            "community": True, "rules_channel_id": "1", "public_updates_channel_id": "2",
+        })
+        self.assertFalse(is_error)
+        kwargs = ctx.guild.edit.await_args.kwargs
+        self.assertTrue(kwargs["community"])
+        self.assertIs(kwargs["rules_channel"], channels[1])
+        self.assertIs(kwargs["public_updates_channel"], channels[2])
+        self.assertEqual(kwargs["verification_level"], discord.VerificationLevel.low)
+        self.assertEqual(kwargs["explicit_content_filter"], discord.ContentFilter.all_members)
+
+    async def test_enable_community_needs_channels(self):
+        ctx, _ = self._ctx()
+        content, is_error = await execute_tool(ctx, "edit_server", {"community": True})
+        self.assertTrue(is_error)
+        self.assertIn("rules_channel_id", content)
+        ctx.guild.edit.assert_not_awaited()
+
+
 class AgentTests(unittest.IsolatedAsyncioTestCase):
     def make_agent(self, *responses):
         agent = ClaudeAgent(Config(discord_token="x"))

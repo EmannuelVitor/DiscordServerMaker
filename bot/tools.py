@@ -294,6 +294,10 @@ async def get_server_info(ctx: ToolContext) -> dict:
             "verification_level": str(guild.verification_level),
             "features": guild.features,
             "system_channel_id": str(guild.system_channel.id) if guild.system_channel else None,
+            "rules_channel_id": str(guild.rules_channel.id) if guild.rules_channel else None,
+            "public_updates_channel_id": (
+                str(guild.public_updates_channel.id) if guild.public_updates_channel else None
+            ),
         },
         "bot_top_role_position": guild.me.top_role.position,
         "categories": categories,
@@ -895,6 +899,21 @@ async def create_invite(ctx: ToolContext, channel_id: str, max_age_seconds: int 
             "enum": ["none", "low", "medium", "high", "highest"],
         },
         "system_channel_id": {**ID, "description": "Canal de mensagens do sistema (boas-vindas)."},
+        "explicit_content_filter": {
+            "type": "string",
+            "enum": ["disabled", "no_role", "all_members"],
+            "description": "Filtro de conteúdo explícito de mídia.",
+        },
+        "community": {
+            "type": "boolean",
+            "description": "Ativa/desativa a Comunidade. Para ativar, informe rules_channel_id e "
+            "public_updates_channel_id; se faltar, o nível de verificação sobe para 'low' e o "
+            "filtro de conteúdo vira 'all_members' (exigências do Discord).",
+        },
+        "rules_channel_id": {**ID, "description": "Canal de regras (Comunidade)."},
+        "public_updates_channel_id": {
+            **ID, "description": "Canal onde o Discord manda avisos para a moderação (Comunidade).",
+        },
     },
     permissions=("manage_guild",),
 )
@@ -911,10 +930,38 @@ async def edit_server(ctx: ToolContext, **changes: Any) -> dict:
         if not isinstance(channel, discord.TextChannel):
             raise ToolError("O canal do sistema precisa ser de texto.")
         kwargs["system_channel"] = channel
+    for field, key in (("rules_channel_id", "rules_channel"),
+                       ("public_updates_channel_id", "public_updates_channel")):
+        if field in changes:
+            channel = _channel(ctx.guild, changes[field])
+            if not isinstance(channel, discord.TextChannel):
+                raise ToolError(f"{field} precisa ser um canal de texto.")
+            kwargs[key] = channel
+    if "explicit_content_filter" in changes:
+        kwargs["explicit_content_filter"] = discord.ContentFilter[changes["explicit_content_filter"]]
+    if "community" in changes:
+        kwargs["community"] = bool(changes["community"])
+        if kwargs["community"]:
+            guild = ctx.guild
+            if "rules_channel" not in kwargs and guild.rules_channel is None:
+                raise ToolError("Para ativar a Comunidade, informe rules_channel_id.")
+            if "public_updates_channel" not in kwargs and guild.public_updates_channel is None:
+                raise ToolError("Para ativar a Comunidade, informe public_updates_channel_id.")
+            if ("verification_level" not in kwargs
+                    and guild.verification_level == discord.VerificationLevel.none):
+                kwargs["verification_level"] = discord.VerificationLevel.low
+            if ("explicit_content_filter" not in kwargs
+                    and guild.explicit_content_filter != discord.ContentFilter.all_members):
+                kwargs["explicit_content_filter"] = discord.ContentFilter.all_members
     if len(kwargs) == 1:
         raise ToolError("Nenhuma alteração informada.")
     guild = await ctx.guild.edit(**kwargs)
-    return {"updated": {"name": guild.name, "verification_level": str(guild.verification_level)}}
+    return {"updated": {
+        "name": guild.name,
+        "verification_level": str(guild.verification_level),
+        "explicit_content_filter": str(guild.explicit_content_filter),
+        "community": "COMMUNITY" in guild.features,
+    }}
 
 
 @tool(
