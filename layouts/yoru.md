@@ -34,10 +34,9 @@ As categorias antigas `Canais de Texto` (`1559555589804261417`) e `Canais de Voz
 |---|---|---|
 | 🌙 Equipe Yoru | `#8B5CF6` | separado na lista; gerenciar mensagens, castigo, expulsar, gerenciar threads e apelidos, mencionar @everyone |
 | 🛡️ Moderador | `#3BA55C` | separado na lista; gerenciar mensagens, castigo, gerenciar threads e apelidos |
-| 💻 Dev Yoru | `#5865F2` | separado na lista, mencionável; escreve em 🌙 \| PROJETO YORU e vê 🔒 \| STAFF (permissões por canal) |
 | 🔔 Notificações Yoru | `#FEE75C` | mencionável; sem permissões (ping quando sair novidade) |
 
-O dono recebe o cargo 🌙 Equipe Yoru.
+O dono recebe o cargo 🌙 Equipe Yoru. Os devs do projeto são a staff: também recebem 🌙 Equipe Yoru.
 
 ## Passos para o Claude Code
 
