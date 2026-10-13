@@ -100,10 +100,33 @@ async def _run_calls(guild: discord.Guild, calls: list[dict], confirm: bool) -> 
     return results
 
 
+class _IntentsDenied(Exception):
+    pass
+
+
+def _is_intents_error(exc: BaseException | None) -> bool:
+    return isinstance(exc, discord.PrivilegedIntentsRequired) or (
+        isinstance(exc, discord.ConnectionClosed) and exc.code == 4014
+    )
+
+
 async def _with_client(token: str, work) -> Any:
+    try:
+        return await _connect_and_run(token, work, privileged=True)
+    except _IntentsDenied:
+        print(
+            "AVISO: 'Server Members Intent' e/ou 'Message Content Intent' estão desativados "
+            "em Developer Portal > Bot. Continuando sem eles: list_members fica limitado e "
+            "read_recent_messages não mostra o texto das mensagens.",
+            file=sys.stderr,
+        )
+        return await _connect_and_run(token, work, privileged=False)
+
+
+async def _connect_and_run(token: str, work, privileged: bool) -> Any:
     intents = discord.Intents.default()
-    intents.members = True
-    intents.message_content = True
+    intents.members = privileged
+    intents.message_content = privileged
     client = discord.Client(intents=intents)
     ready = asyncio.Event()
 
@@ -122,11 +145,8 @@ async def _with_client(token: str, work) -> Any:
         if connect in done:
             waiter.cancel()
             exc = connect.exception()
-            if isinstance(exc, discord.PrivilegedIntentsRequired):
-                raise SystemExit(
-                    "Ative 'Server Members Intent' e 'Message Content Intent' em "
-                    "Developer Portal > Bot."
-                )
+            if privileged and _is_intents_error(exc):
+                raise _IntentsDenied
             raise SystemExit(f"Falha ao conectar no Discord: {exc}")
         try:
             return await work(client)
