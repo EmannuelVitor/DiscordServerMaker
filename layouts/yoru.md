@@ -10,7 +10,7 @@ nome (ex.: `📖│regras`), com categorias em maiúsculas (`📌 | INÍCIO`).
 
 | Categoria | Canais | Quem escreve |
 |---|---|---|
-| 📌 \| INÍCIO | 📖│regras · 👋│boas-vindas · 📢│anúncios | só a equipe |
+| 📌 \| INÍCIO | 📖│regras · 🧭│guia · 👋│boas-vindas · 📢│anúncios | só a equipe |
 | 🌙 \| PROJETO YORU | 📰│novidades · 🛠️│patch-notes* · 🚀│releases* · 🗺️│roadmap · 🖼️│galeria | só a equipe |
 | 💬 \| COMUNIDADE | 💭│chat-geral* · 💡│sugestões · 🐞│reportar-bugs · ❓│dúvidas · 🎨│fanarts | todos |
 | 🔊 \| CALLS | 💬 \| Bate-papo* (voz) · 🎙️ \| Devlog ao vivo (voz) · 💤 \| AFK (voz) | todos |
