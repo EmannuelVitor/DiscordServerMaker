@@ -84,6 +84,7 @@ async def _run_calls(guild: discord.Guild, calls: list[dict], confirm: bool) -> 
         confirm_timeout=0,
         confirm_fn=confirm_fn,
         audit_label="Via Claude Code",
+        allow_local_files=True,
     )
 
     results = []

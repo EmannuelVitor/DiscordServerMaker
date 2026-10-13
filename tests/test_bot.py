@@ -161,6 +161,40 @@ class EditServerTests(unittest.IsolatedAsyncioTestCase):
         ctx.guild.edit.assert_not_awaited()
 
 
+class LocalImageTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        import tempfile
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.image = os.path.join(tmp.name, "yoru.png")
+        with open(self.image, "wb") as f:
+            f.write(b"\x89PNG fake")
+
+    async def test_refused_in_bot_mode(self):
+        ctx = make_ctx(discord.Permissions(administrator=True))
+        ctx.guild.create_custom_emoji = AsyncMock()
+        content, is_error = await execute_tool(
+            ctx, "create_emoji", {"name": "yoru", "image_path": self.image})
+        self.assertTrue(is_error)
+        self.assertIn("modo Claude Code", content)
+        ctx.guild.create_custom_emoji.assert_not_awaited()
+
+    async def test_send_message_with_image(self):
+        ctx = make_ctx(discord.Permissions(administrator=True))
+        ctx.allow_local_files = True
+        channel = MagicMock(spec=discord.TextChannel)
+        channel.name = "guia"
+        channel.send = AsyncMock(return_value=MagicMock(id=1))
+        ctx.guild.get_channel = {5: channel}.get
+        _, is_error = await execute_tool(ctx, "send_message", {
+            "channel_id": "5", "embed_title": "Yoru", "image_path": self.image,
+        })
+        self.assertFalse(is_error)
+        kwargs = channel.send.await_args.kwargs
+        self.assertEqual(kwargs["file"].filename, "yoru.png")
+        self.assertEqual(kwargs["embed"].image.url, "attachment://yoru.png")
+
+
 class AgentTests(unittest.IsolatedAsyncioTestCase):
     def make_agent(self, *responses):
         agent = ClaudeAgent(Config(discord_token="x"))

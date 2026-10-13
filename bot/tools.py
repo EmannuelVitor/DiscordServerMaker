@@ -13,6 +13,7 @@ import datetime as dt
 import json
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Awaitable, Callable
 
 import discord
@@ -40,6 +41,9 @@ class ToolContext:
     confirm_fn: Callable[[str], Awaitable[bool]] | None = None
     # Texto do registro de auditoria; se vazio, usa o solicitante.
     audit_label: str | None = None
+    # Permite ler imagens do disco (só no modo Claude Code; no modo bot o modelo
+    # não deve conseguir ler arquivos da máquina).
+    allow_local_files: bool = False
 
     @property
     def audit_reason(self) -> str:
@@ -181,6 +185,20 @@ def _color(value: str | None) -> discord.Color | None:
         return discord.Color(int(value.lstrip("#"), 16))
     except ValueError:
         raise ToolError(f"Cor inválida: {value!r}") from None
+
+
+IMAGE_TYPES = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+
+
+def _local_image(ctx: ToolContext, path: str) -> Path:
+    if not ctx.allow_local_files:
+        raise ToolError("Imagens locais só podem ser usadas no modo Claude Code (python -m bot.cli).")
+    file = Path(path).expanduser()
+    if file.suffix.lower() not in IMAGE_TYPES:
+        raise ToolError(f"Formato de imagem não suportado: {file.suffix or path!r}")
+    if not file.is_file():
+        raise ToolError(f"Arquivo não encontrado: {path}")
+    return file
 
 
 def _permissions(names: list[str] | None) -> discord.Permissions:
@@ -577,6 +595,25 @@ async def set_channel_permissions(ctx: ToolContext, channel_id: str, target_id: 
 # ---------------------------------------------------------------------------
 
 @tool(
+    "create_emoji",
+    "Cria um emoji personalizado a partir de uma imagem local (só no modo Claude Code). "
+    "PNG/GIF até 256 KB; o ideal é 128x128.",
+    {
+        "name": {"type": "string", "description": "2 a 32 caracteres: letras, números e _."},
+        "image_path": {"type": "string"},
+    },
+    ["name", "image_path"],
+    permissions=("manage_expressions",),
+)
+async def create_emoji(ctx: ToolContext, name: str, image_path: str) -> dict:
+    data = _local_image(ctx, image_path).read_bytes()
+    if len(data) > 256 * 1024:
+        raise ToolError("A imagem do emoji precisa ter no máximo 256 KB.")
+    emoji = await ctx.guild.create_custom_emoji(name=name, image=data, reason=ctx.reason(None))
+    return {"created": {"id": str(emoji.id), "name": emoji.name, "usage": str(emoji)}}
+
+
+@tool(
     "create_role",
     "Cria um cargo.",
     {
@@ -835,12 +872,17 @@ async def purge_messages(ctx: ToolContext, channel_id: str, limit: int,
         "embed_title": {"type": "string"},
         "embed_description": {"type": "string", "description": "Até 4096 caracteres."},
         "embed_color": COLOR,
+        "image_path": {
+            "type": "string",
+            "description": "Imagem local para anexar (só no modo Claude Code). Com embed, "
+            "aparece dentro dele.",
+        },
     },
     ["channel_id"],
 )
 async def send_message(ctx: ToolContext, channel_id: str, content: str | None = None,
                        embed_title: str | None = None, embed_description: str | None = None,
-                       embed_color: str | None = None) -> dict:
+                       embed_color: str | None = None, image_path: str | None = None) -> dict:
     channel = _channel(ctx.guild, channel_id)
     if not isinstance(channel, discord.abc.Messageable):
         raise ToolError("Não é possível enviar mensagens neste tipo de canal.")
@@ -854,11 +896,18 @@ async def send_message(ctx: ToolContext, channel_id: str, content: str | None = 
             description=embed_description,
             color=_color(embed_color) or discord.Color.blurple(),
         )
-    if not content and embed is None:
-        raise ToolError("Informe content ou embed.")
+    image = _local_image(ctx, image_path) if image_path else None
+    if not content and embed is None and image is None:
+        raise ToolError("Informe content, embed ou image_path.")
+    kwargs: dict[str, Any] = {}
+    if image is not None:
+        kwargs["file"] = discord.File(image, filename=image.name)
+        if embed is not None:
+            embed.set_image(url=f"attachment://{image.name}")
     message = await channel.send(
         content=content[:2000] if content else None,
         embed=embed,
+        **kwargs,
         allowed_mentions=discord.AllowedMentions(
             everyone=perms.mention_everyone, roles=True, users=True
         ),
@@ -914,6 +963,10 @@ async def create_invite(ctx: ToolContext, channel_id: str, max_age_seconds: int 
         "public_updates_channel_id": {
             **ID, "description": "Canal onde o Discord manda avisos para a moderação (Comunidade).",
         },
+        "icon_path": {
+            "type": "string",
+            "description": "Imagem local para o ícone do servidor (só no modo Claude Code).",
+        },
     },
     permissions=("manage_guild",),
 )
@@ -937,6 +990,8 @@ async def edit_server(ctx: ToolContext, **changes: Any) -> dict:
             if not isinstance(channel, discord.TextChannel):
                 raise ToolError(f"{field} precisa ser um canal de texto.")
             kwargs[key] = channel
+    if "icon_path" in changes:
+        kwargs["icon"] = _local_image(ctx, changes["icon_path"]).read_bytes()
     if "explicit_content_filter" in changes:
         kwargs["explicit_content_filter"] = discord.ContentFilter[changes["explicit_content_filter"]]
     if "community" in changes:

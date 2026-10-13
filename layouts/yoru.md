@@ -1,6 +1,7 @@
 # Layout do servidor Yoru
 
-Servidor para divulgar as novidades do **projeto Yoru**. Estilo dos nomes: emoji + `│` +
+Servidor para divulgar as novidades do **projeto Yoru**, um mensageiro "seguro, privado e
+feito para quem compartilha o que ama" (pilares: privacidade, conexão, amizade, liberdade). Estilo dos nomes: emoji + `│` +
 nome (ex.: `📖│regras`), com categorias em maiúsculas (`📌 | INÍCIO`).
 
 - Servidor: **Yoru** (`1559555589120598057`)
@@ -10,7 +11,7 @@ nome (ex.: `📖│regras`), com categorias em maiúsculas (`📌 | INÍCIO`).
 
 | Categoria | Canais | Quem escreve |
 |---|---|---|
-| 📌 \| INÍCIO | 📖│regras · 🧭│guia · 👋│boas-vindas · 📢│anúncios | só a equipe |
+| 📌 \| INÍCIO | 📖│regras · 🌙│sobre-o-yoru · 🧭│guia · 👋│boas-vindas · 📢│anúncios | só a equipe |
 | 🌙 \| PROJETO YORU | 📰│novidades · 🛠️│patch-notes* · 🚀│releases* · 🗺️│roadmap · 🖼️│galeria | só a equipe |
 | 💬 \| COMUNIDADE | 💭│chat-geral* · 💡│sugestões · 🐞│reportar-bugs · ❓│dúvidas · 🎨│fanarts | todos |
 | 🔊 \| CALLS | 💬 \| Bate-papo* (voz) · 🎙️ \| Devlog ao vivo (voz) · 💤 \| AFK (voz) | todos |
@@ -37,6 +38,10 @@ As categorias antigas `Canais de Texto` (`1559555589804261417`) e `Canais de Voz
 | 🛡️ Moderador | `#3BA55C` | separado na lista; gerenciar mensagens, castigo, gerenciar threads e apelidos |
 | 🧪 Beta Tester | `#1ABC9C` | separado na lista, mencionável; sem permissões extras (quem testa as versões beta) |
 | 🔔 Notificações Yoru | `#FEE75C` | mencionável; sem permissões (ping quando sair novidade) |
+
+Ícone do servidor e 9 emojis (`:yoru_normal:`, `:yoru_feliz:`, `:yoru_piscando:`, `:yoru_brava:`,
+`:yoru_surpresa:`, `:yoru_triste:`, `:yoru_dormindo:`, `:yoru_vergonha:`, `:yoru_curiosa:`) vêm das
+artes da mascote.
 
 O dono recebe o cargo 🌙 Equipe Yoru. Os devs do projeto são a staff: também recebem 🌙 Equipe Yoru.
 
