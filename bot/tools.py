@@ -36,15 +36,23 @@ class ToolContext:
     send: SendFn
     require_confirmation: bool
     confirm_timeout: int
+    # Substitui os botões do Discord (usado pelo modo Claude Code).
+    confirm_fn: Callable[[str], Awaitable[bool]] | None = None
+    # Texto do registro de auditoria; se vazio, usa o solicitante.
+    audit_label: str | None = None
 
     @property
     def audit_reason(self) -> str:
+        if self.audit_label:
+            return self.audit_label
         return f"Pedido por {self.requester} ({self.requester.id}) via Claude"
 
     def reason(self, extra: str | None) -> str:
         return f"{self.audit_reason}: {extra}" if extra else self.audit_reason
 
     async def confirm(self, description: str) -> bool:
+        if self.confirm_fn is not None:
+            return await self.confirm_fn(description)
         if not self.require_confirmation:
             return True
         view = ConfirmView(self.requester.id, timeout=self.confirm_timeout)

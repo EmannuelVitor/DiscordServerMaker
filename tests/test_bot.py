@@ -10,6 +10,7 @@ import discord
 os.environ.setdefault("ANTHROPIC_API_KEY", "test")
 
 from bot.__main__ import chunk  # noqa: E402
+from bot.cli import _run_calls  # noqa: E402
 from bot.agent import ClaudeAgent  # noqa: E402
 from bot.config import Config  # noqa: E402
 from bot.tools import ToolContext, execute_tool  # noqa: E402
@@ -128,6 +129,38 @@ class AgentTests(unittest.IsolatedAsyncioTestCase):
         agent = self.make_agent(response("refusal"))
         reply = await agent.run(ctx, "oi", AsyncMock())
         self.assertIn("não posso", reply)
+
+
+class CliTests(unittest.IsolatedAsyncioTestCase):
+    def make_guild(self):
+        guild = MagicMock()
+        guild.owner_id = 999
+        guild.me.id = 77
+        guild.me.guild_permissions = discord.Permissions(manage_channels=True)
+        channel = MagicMock()
+        channel.name = "lixo"
+        channel.delete = AsyncMock()
+        guild.get_channel.return_value = channel
+        return guild, channel
+
+    async def test_destructive_needs_confirm(self):
+        guild, channel = self.make_guild()
+        [res] = await _run_calls(guild, [{"tool": "delete_channel", "input": {"channel_id": "1"}}], False)
+        self.assertIn("needs_confirmation", res)
+        channel.delete.assert_not_awaited()
+
+    async def test_destructive_with_confirm(self):
+        guild, channel = self.make_guild()
+        [res] = await _run_calls(guild, [{"tool": "delete_channel", "input": {"channel_id": "1"}}], True)
+        self.assertTrue(res["ok"])
+        channel.delete.assert_awaited_once()
+        self.assertEqual(channel.delete.await_args.kwargs["reason"], "Via Claude Code")
+
+    async def test_uses_bot_permissions(self):
+        guild, _ = self.make_guild()
+        [res] = await _run_calls(guild, [{"tool": "ban_user", "input": {"user_id": "5"}}], True)
+        self.assertFalse(res["ok"])
+        self.assertIn("ban_members", res["result"])
 
 
 class ChunkTests(unittest.TestCase):

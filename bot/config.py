@@ -49,7 +49,9 @@ class Config:
 
     @classmethod
     def from_env(cls) -> "Config":
-        load_dotenv()
+        # override=True: o .env vence variáveis já existentes no terminal (o
+        # próprio Claude Code define CLAUDE_EFFORT, por exemplo).
+        load_dotenv(override=True)
         token = os.getenv("DISCORD_TOKEN", "").strip()
         if not token:
             raise SystemExit("Defina DISCORD_TOKEN no ambiente ou no arquivo .env")

@@ -91,6 +91,34 @@ Exemplos:
 - `apague as últimas 50 mensagens de @spammer em #geral`
 - `escreva e publique as regras do servidor em #regras em um embed`
 
+## Modo Claude Code (sem API paga)
+
+Em vez de deixar o bot rodando com a API da Anthropic, você pode pedir as alterações ao
+**Claude Code** (no claude.ai/code ou no terminal), que usa a sua assinatura do Claude.
+Nesse modo só é preciso o `DISCORD_TOKEN`, e o bot não precisa ficar online.
+
+1. Faça os passos de "Criar o bot no Discord" acima.
+2. Disponibilize o token:
+   - **Claude Code na nuvem:** no menu do ambiente (barra de título da sessão) > **Edit**,
+     adicione a variável de ambiente `DISCORD_TOKEN`. Não cole o token no chat.
+   - **Claude Code no seu PC:** coloque `DISCORD_TOKEN` no arquivo `.env`.
+3. Abra uma sessão neste repositório e peça, por exemplo: *"crie uma categoria Eventos com
+   dois canais de voz no meu servidor"*.
+
+O `CLAUDE.md` ensina o Claude Code a usar o CLI `python -m bot.cli`, e o hook em
+`.claude/` instala as dependências automaticamente nas sessões na nuvem. Ações
+destrutivas só são executadas depois que você aprova no chat. Nesse modo as ações
+usam as permissões do bot, e as pessoas no Discord não conseguem chamá-lo por menção.
+
+Você também pode usar o CLI diretamente:
+
+```bash
+python -m bot.cli guilds
+python -m bot.cli run get_server_info
+python -m bot.cli run create_channel '{"name": "avisos", "type": "announcement"}'
+python -m bot.cli run delete_channel '{"channel_id": "123"}' --confirm
+```
+
 ## Configuração (`.env`)
 
 | Variável | Padrão | Descrição |
@@ -105,6 +133,7 @@ Exemplos:
 | `MAX_TOOL_ROUNDS` | `25` | Máximo de rodadas de ferramentas por pedido |
 | `MAX_HISTORY_MESSAGES` | `80` | Tamanho do histórico antes de reiniciar a conversa do canal |
 | `DEV_GUILD_ID` | vazio | Sincroniza os comandos de barra na hora neste servidor |
+| `DISCORD_GUILD_ID` | vazio | Modo Claude Code: servidor padrão, se o bot estiver em vários |
 
 O bot usa *prompt caching* e, se o modelo recusar um pedido, a API tenta de novo
 automaticamente em outro modelo (*server-side fallback*). Cada pedido consome tokens da
@@ -120,6 +149,7 @@ bot/
   tools.py      # ferramentas do Discord + checagem de permissões
   confirm.py    # botões de confirmação
   config.py     # leitura do .env
+  cli.py        # modo Claude Code (python -m bot.cli)
 tests/          # testes offline: python -m unittest
 ```
 
