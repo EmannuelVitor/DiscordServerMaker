@@ -195,6 +195,20 @@ class LocalImageTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(kwargs["embed"].image.url, "attachment://yoru.png")
 
 
+    async def test_sticker_limit(self):
+        ctx = make_ctx(discord.Permissions(administrator=True))
+        ctx.allow_local_files = True
+        ctx.guild.stickers = [MagicMock()] * 5
+        ctx.guild.sticker_limit = 5
+        ctx.guild.create_sticker = AsyncMock()
+        content, is_error = await execute_tool(ctx, "create_sticker", {
+            "name": "Yoru", "emoji": "🌙", "image_path": self.image,
+        })
+        self.assertTrue(is_error)
+        self.assertIn("Limite", content)
+        ctx.guild.create_sticker.assert_not_awaited()
+
+
 class AgentTests(unittest.IsolatedAsyncioTestCase):
     def make_agent(self, *responses):
         agent = ClaudeAgent(Config(discord_token="x"))

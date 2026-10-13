@@ -41,7 +41,10 @@ As categorias antigas `Canais de Texto` (`1559555589804261417`) e `Canais de Voz
 
 Ícone do servidor e 9 emojis (`:yoru_normal:`, `:yoru_feliz:`, `:yoru_piscando:`, `:yoru_brava:`,
 `:yoru_surpresa:`, `:yoru_triste:`, `:yoru_dormindo:`, `:yoru_vergonha:`, `:yoru_curiosa:`) vêm das
-artes da mascote.
+artes da mascote. Também há 21 emojis recortados da folha de stickers (`yoru_gatinho`,
+`yoru_duvida`, `yoru_amor`, `yoru_oculos`, `yoru_soninho`, `yoru_animada`, `gato_*`, `yoru_lua`,
+`yoru_brilho`, `yoru_coracao`, `yoru_estrela`, `yoru_gato`, `yoru_chat`) e 5 figurinhas (Yoru,
+Yoru animada, Yoru dormindo, Yoru com capa, Yoru amor), o limite sem impulsos.
 
 O dono recebe o cargo 🌙 Equipe Yoru. Os devs do projeto são a staff: também recebem 🌙 Equipe Yoru.
 

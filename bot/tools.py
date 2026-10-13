@@ -614,6 +614,33 @@ async def create_emoji(ctx: ToolContext, name: str, image_path: str) -> dict:
 
 
 @tool(
+    "create_sticker",
+    "Cria uma figurinha (sticker) do servidor a partir de uma imagem local (só no modo "
+    "Claude Code). PNG/APNG 320x320, até 512 KB.",
+    {
+        "name": {"type": "string", "description": "2 a 30 caracteres."},
+        "emoji": {"type": "string", "description": "Emoji Unicode relacionado (ex.: 😊)."},
+        "description": {"type": "string", "description": "Até 100 caracteres (opcional)."},
+        "image_path": {"type": "string"},
+    },
+    ["name", "emoji", "image_path"],
+    permissions=("manage_expressions",),
+)
+async def create_sticker(ctx: ToolContext, name: str, emoji: str, image_path: str,
+                         description: str = "") -> dict:
+    image = _local_image(ctx, image_path)
+    if image.stat().st_size > 512 * 1024:
+        raise ToolError("A imagem da figurinha precisa ter no máximo 512 KB.")
+    if len(ctx.guild.stickers) >= ctx.guild.sticker_limit:
+        raise ToolError(f"Limite de figurinhas atingido ({ctx.guild.sticker_limit}).")
+    sticker = await ctx.guild.create_sticker(
+        name=name, description=description, emoji=emoji,
+        file=discord.File(image, filename=image.name), reason=ctx.reason(None),
+    )
+    return {"created": {"id": str(sticker.id), "name": sticker.name}}
+
+
+@tool(
     "create_role",
     "Cria um cargo.",
     {
