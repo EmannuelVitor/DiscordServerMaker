@@ -37,6 +37,11 @@ Regras:
 - As ações usam as permissões do bot; erros de "Forbidden" geralmente significam que o
   cargo do bot precisa subir na hierarquia.
 
+## Layouts planejados
+
+`layouts/` guarda planos de organização prontos para aplicar (ex.: `layouts/yoru.md` para o
+servidor Yoru). Quando o usuário pedir para "aplicar o layout", siga os passos do arquivo.
+
 ## Código
 
 - `bot/tools.py`: ferramentas (usadas pelos dois modos), com checagem de permissões.

@@ -94,6 +94,34 @@ class ToolTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("ban_members", content)
 
 
+class SetupStructureTests(unittest.IsolatedAsyncioTestCase):
+    async def test_read_only_and_private(self):
+        ctx = make_ctx(discord.Permissions(administrator=True))
+        guild = ctx.guild
+        equipe = MagicMock()
+        equipe.name = "Equipe"
+        guild.roles = [equipe]
+        category = MagicMock()
+        guild.create_category = AsyncMock(return_value=category)
+        guild.create_text_channel = AsyncMock(return_value=MagicMock())
+        guild.create_voice_channel = AsyncMock(return_value=MagicMock())
+        _, is_error = await execute_tool(ctx, "setup_server_structure", {"categories": [
+            {"name": "INFO", "read_only": True, "write_roles": ["Equipe"],
+             "channels": [{"name": "avisos", "type": "text"}]},
+            {"name": "STAFF", "private_to_roles": ["Equipe", "Fantasma"],
+             "channels": [{"name": "voz", "type": "voice"}]},
+        ]})
+        self.assertFalse(is_error)
+        info_ow = guild.create_category.await_args_list[0].kwargs["overwrites"]
+        self.assertFalse(info_ow[guild.default_role].send_messages)
+        self.assertTrue(info_ow[equipe].send_messages)
+        staff_ow = guild.create_category.await_args_list[1].kwargs["overwrites"]
+        self.assertFalse(staff_ow[guild.default_role].view_channel)
+        self.assertTrue(staff_ow[equipe].view_channel)
+        # canais sem opções herdam da categoria
+        self.assertNotIn("overwrites", guild.create_text_channel.await_args.kwargs)
+
+
 class AgentTests(unittest.IsolatedAsyncioTestCase):
     def make_agent(self, *responses):
         agent = ClaudeAgent(Config(discord_token="x"))

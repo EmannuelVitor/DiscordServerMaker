@@ -921,8 +921,10 @@ async def edit_server(ctx: ToolContext, **changes: Any) -> dict:
     "setup_server_structure",
     "Cria em lote cargos, categorias e canais — ideal para montar um servidor do zero a "
     "partir de um tema. Não exclui nada que já exista. Cargos são criados primeiro; nos "
-    "canais, 'private_to_roles' (nomes de cargos deste lote ou já existentes) deixa o "
-    "canal visível só para esses cargos.",
+    "categorias e canais, 'private_to_roles' (nomes de cargos deste lote ou já existentes) "
+    "deixa visível só para esses cargos, e 'read_only' impede o @everyone de escrever "
+    "(só os cargos em 'write_roles' escrevem). Canais sem essas opções herdam as "
+    "permissões da categoria. Anúncios ('announcement') exigem Comunidade ativada.",
     {
         "roles": {
             "type": "array",
@@ -945,6 +947,8 @@ async def edit_server(ctx: ToolContext, **changes: Any) -> dict:
                 "properties": {
                     "name": {"type": "string"},
                     "private_to_roles": {"type": "array", "items": {"type": "string"}},
+                    "read_only": {"type": "boolean"},
+                    "write_roles": {"type": "array", "items": {"type": "string"}},
                     "channels": {
                         "type": "array",
                         "items": {
@@ -957,6 +961,8 @@ async def edit_server(ctx: ToolContext, **changes: Any) -> dict:
                                 },
                                 "topic": {"type": "string"},
                                 "private_to_roles": {"type": "array", "items": {"type": "string"}},
+                                "read_only": {"type": "boolean"},
+                                "write_roles": {"type": "array", "items": {"type": "string"}},
                             },
                             "required": ["name", "type"],
                         },
@@ -992,19 +998,38 @@ async def setup_server_structure(ctx: ToolContext, roles: list[dict] | None = No
         except (ToolError, discord.HTTPException) as exc:
             errors.append(f"cargo {spec.get('name')}: {exc}")
 
-    def private_overwrites(role_names: list[str] | None) -> dict:
-        if not role_names:
-            return {}
-        overwrites: dict = {
-            guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            guild.me: discord.PermissionOverwrite(view_channel=True),
-        }
-        for name in role_names:
+    def resolve_roles(names: list[str]) -> list[discord.Role]:
+        found = []
+        for name in names:
             role = discord.utils.get(guild.roles, name=name)
             if role is None:
-                errors.append(f"cargo '{name}' não encontrado para canal privado")
-                continue
-            overwrites[role] = discord.PermissionOverwrite(view_channel=True)
+                errors.append(f"cargo '{name}' não encontrado")
+            else:
+                found.append(role)
+        return found
+
+    def build_overwrites(spec: dict) -> dict | None:
+        """Overwrites para private_to_roles/read_only; None = herdar da categoria."""
+        private = spec.get("private_to_roles") or []
+        read_only = spec.get("read_only", False)
+        if not private and not read_only:
+            return None
+        overwrites: dict = {}
+
+        def entry(target) -> discord.PermissionOverwrite:
+            return overwrites.setdefault(target, discord.PermissionOverwrite())
+
+        entry(guild.me).update(view_channel=True, send_messages=True)
+        if private:
+            entry(guild.default_role).view_channel = False
+            for role in resolve_roles(private):
+                entry(role).view_channel = True
+        if read_only:
+            entry(guild.default_role).update(
+                send_messages=False, create_public_threads=False, create_private_threads=False
+            )
+            for role in resolve_roles(spec.get("write_roles") or []):
+                entry(role).send_messages = True
         return overwrites
 
     creators = {
@@ -1018,7 +1043,7 @@ async def setup_server_structure(ctx: ToolContext, roles: list[dict] | None = No
         try:
             category = await guild.create_category(
                 cat_spec["name"],
-                overwrites=private_overwrites(cat_spec.get("private_to_roles")),
+                overwrites=build_overwrites(cat_spec) or {},
                 reason=reason,
             )
             created_channels.append(f"[categoria] {category.name} ({category.id})")
@@ -1028,8 +1053,9 @@ async def setup_server_structure(ctx: ToolContext, roles: list[dict] | None = No
         for ch_spec in cat_spec.get("channels", []):
             ch_type = ch_spec.get("type", "text")
             kwargs: dict[str, Any] = {"category": category, "reason": reason}
-            if ch_spec.get("private_to_roles"):
-                kwargs["overwrites"] = private_overwrites(ch_spec["private_to_roles"])
+            overwrites = build_overwrites(ch_spec)
+            if overwrites is not None:
+                kwargs["overwrites"] = overwrites
             if ch_spec.get("topic") and ch_type in ("text", "announcement", "forum"):
                 kwargs["topic"] = ch_spec["topic"]
             try:
